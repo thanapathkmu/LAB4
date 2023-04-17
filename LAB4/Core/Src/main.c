@@ -48,16 +48,16 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 //PID
-float Kp = 0;
-float Kd = 0;
-float Ki = 0;
+float Kp = 0.01;
+float Kd = 0.002;
+float Ki = 0.03;
 uint32_t duty = 500;
 float e = 0;
 float s = 0;
 float p = 0;
 float u = 0;
-uint32_t degree =0;
-float Position =0;
+uint32_t degree =1000;
+float Position = 1;
 
 //Input Capture
 uint32_t QEIRawData;
@@ -113,6 +113,8 @@ int main(void)
   MX_TIM1_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
+  void PIDCalculate();
+  void MotorDrive();
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_1|TIM_CHANNEL_2);
   //Timer 1 PWM Output
   HAL_TIM_Base_Start(&htim1);
@@ -130,16 +132,15 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  __HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,0);
-	  __HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,50);
-
 	  static uint32_t timestamp = 0;
 	  if(HAL_GetTick() >= timestamp)
 	  {
 		  timestamp = HAL_GetTick()+5;
 		  QEIRawData = __HAL_TIM_GET_COUNTER(&htim2);
 		  Position = QEIRawData*0.1172; //Degree unit
-		  // 0.1172 from 360 degree/3071 Pulse
+		  PIDCalculate();
+		  MotorDrive();
+		  // 0.1172 from 360 degree/3072 Pulse
 	  }
   }
   /* USER CODE END 3 */
@@ -287,7 +288,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 0;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 3071;
+  htim2.Init.Period = 307100;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   sConfig.EncoderMode = TIM_ENCODERMODE_TI12;
@@ -442,9 +443,30 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void PIDCalculate(){
+	e = degree-Position;
+	s = s+e;
 	u = (Kp*e)+(Ki*s)+(Kd*(e-p));
+	p = e;
 }
 
+void MotorDrive(){
+	//Forward
+	if(e > 10)
+	{
+		__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,0);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,u);
+	}
+	//Backward
+	else if(e < -10){
+		__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,(u*-1));
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,0);
+	}
+	//Stop
+	else{
+		__HAL_TIM_SET_COMPARE(&htim1,TIM_CHANNEL_1,0);
+		__HAL_TIM_SET_COMPARE(&htim3,TIM_CHANNEL_1,0);
+	}
+}
 /* USER CODE END 4 */
 
 /**
