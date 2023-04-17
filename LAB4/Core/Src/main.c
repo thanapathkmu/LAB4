@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#define IC_BUFFER_SIZE 20 //Define Buffer size to get the value from encoder
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,7 +46,9 @@ DMA_HandleTypeDef hdma_tim2_ch1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+uint32_t InputBuffer[IC_BUFFER_SIZE];
+float averageEncoder = 0;
+float MotorReadRPM = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,6 +100,14 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+
+  //Start Timer ,Start PWM and Start InputCompare
+  //Timer 2 InputCapture
+  HAL_TIM_Base_Start(&htim2);
+  HAL_TIM_IC_Start_DMA(&htim2, TIM_CHANNEL_1, InputBuffer , IC_BUFFER_SIZE);
+  //Timer 1 PWM Output
+  HAL_TIM_Base_Start(&htim1);
+  HAL_TIM_PWM_Start(&htim1 , TIM_CHANNEL_1);
 
   /* USER CODE END 2 */
 
@@ -374,6 +384,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+//Code from last LAB
+float CAL_Period()
+{
+	uint32_t currentDMAPointer = IC_BUFFER_SIZE - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
+	uint32_t lastDMAPointer = (currentDMAPointer-1 + IC_BUFFER_SIZE)%IC_BUFFER_SIZE;
+	uint32_t i = (lastDMAPointer + IC_BUFFER_SIZE - 4)%IC_BUFFER_SIZE ;
+	int32_t sumdiff = 0;
+	while(i != lastDMAPointer)
+	{
+		uint32_t FirstCapture = InputBuffer[i];
+		uint32_t NextCapture = InputBuffer[(i+1)%IC_BUFFER_SIZE];
+		sumdiff += NextCapture-FirstCapture;
+		i = (i+1)%IC_BUFFER_SIZE;
+	}
+	averageEncoder = sumdiff/5.0;
+	return averageEncoder;
+}
 
 /* USER CODE END 4 */
 
