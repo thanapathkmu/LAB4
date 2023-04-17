@@ -46,6 +46,18 @@ DMA_HandleTypeDef hdma_tim2_ch1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+
+//PID
+float Kp = 0;
+float Kd = 0;
+float Ki = 0;
+
+float e = 0;
+float s = 0;
+float p = 0;
+float u = 0;
+
+//Input Capture
 uint32_t InputBuffer[IC_BUFFER_SIZE];
 float averageEncoder = 0;
 float MotorReadRPM = 0;
@@ -123,7 +135,6 @@ int main(void)
   static uint32_t timestamp = 0;
   	  if(HAL_GetTick() >= timestamp)
   	  {
-  	  //CAL_Period();
   	  timestamp = HAL_GetTick() +500;
   	  }
   /* USER CODE END 3 */
