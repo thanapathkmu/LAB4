@@ -49,6 +49,7 @@ UART_HandleTypeDef huart2;
 uint32_t InputBuffer[IC_BUFFER_SIZE];
 float averageEncoder = 0;
 float MotorReadRPM = 0;
+uint32_t timestamp = 500;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -119,6 +120,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
   }
+  static uint32_t timestamp = 0;
+  	  if(HAL_GetTick() >= timestamp)
+  	  {
+  	  //CAL_Period();
+  	  timestamp = HAL_GetTick() +500;
+  	  }
   /* USER CODE END 3 */
 }
 
@@ -385,22 +392,6 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 //Code from last LAB
-float CAL_Period()
-{
-	uint32_t currentDMAPointer = IC_BUFFER_SIZE - __HAL_DMA_GET_COUNTER((htim2.hdma[1]));
-	uint32_t lastDMAPointer = (currentDMAPointer-1 + IC_BUFFER_SIZE)%IC_BUFFER_SIZE;
-	uint32_t i = (lastDMAPointer + IC_BUFFER_SIZE - 4)%IC_BUFFER_SIZE ;
-	int32_t sumdiff = 0;
-	while(i != lastDMAPointer)
-	{
-		uint32_t FirstCapture = InputBuffer[i];
-		uint32_t NextCapture = InputBuffer[(i+1)%IC_BUFFER_SIZE];
-		sumdiff += NextCapture-FirstCapture;
-		i = (i+1)%IC_BUFFER_SIZE;
-	}
-	averageEncoder = sumdiff/5.0;
-	return averageEncoder;
-}
 
 /* USER CODE END 4 */
 
